@@ -1,25 +1,41 @@
 package view;
 
-import java.awt.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.File;
 
 public class CartaView extends JDialog {
 
-    public CartaView(JFrame parent, String descricao, String tipo) {
+    public CartaView(JFrame parent, String descricao, String tipo, String caminhoImagem) {
         super(parent, "Carta de " + tipo, true);
         setLayout(new BorderLayout());
 
+        // Painel da imagem
+        JLabel lblImagem = new JLabel();
+        if(caminhoImagem != null){
+            try {
+                BufferedImage img = ImageIO.read(new File(caminhoImagem));
+                lblImagem.setIcon(new ImageIcon(img.getScaledInstance(200, 120, Image.SCALE_SMOOTH)));
+            } catch (Exception e) {
+                System.err.println("Erro ao carregar imagem da carta: " + e.getMessage());
+            }
+        }
+        add(lblImagem, BorderLayout.NORTH);
+
+        // Descrição
         JLabel lblDescricao = new JLabel("<html><center>" + descricao + "</center></html>");
         lblDescricao.setFont(new Font("Arial", Font.BOLD, 16));
         lblDescricao.setHorizontalAlignment(SwingConstants.CENTER);
+        add(lblDescricao, BorderLayout.CENTER);
 
+        // Botão Ok
         JButton btnOk = new JButton("Ok");
         btnOk.addActionListener(e -> dispose());
-
-        add(lblDescricao, BorderLayout.CENTER);
         add(btnOk, BorderLayout.SOUTH);
 
-        setSize(300, 200);
+        setSize(300, 300);
         setLocationRelativeTo(parent);
     }
 }

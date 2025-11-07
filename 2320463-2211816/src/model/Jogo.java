@@ -2,104 +2,147 @@ package model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class Jogo {
-    private List<Jogador> jogadores;
-    private Tabuleiro tabuleiro;
-    private Banco banco;
-    private Prisao prisao;
+import controller.CartaController;
+
+/**
+ * Representa o núcleo do jogo Banco Imobiliário.
+ * Gerencia jogadores, tabuleiro, banco, dados, prisões e baralhos.
+ * Implementa Observable para sincronização com a interface.
+ */
+public class Jogo implements Observable, Observer {
+
+    private final List<Jogador> jogadores;
+    private final Tabuleiro tabuleiro;
+    private final Banco banco;
+    private final Prisao prisao;
+    private final CartaController baralhoCartas;
+    private final Dado dado;
+    private final List<Observer> observers;
+
     private int jogadorDaVez;
-    private BaralhoCartas baralhoCartas;
-    private List<Carta> deckSorte;
-    private List<Carta> deckReves;
-    private Dado dado;
 
     public Jogo(int numJogadores) {
         this.jogadores = new ArrayList<>();
         this.tabuleiro = new Tabuleiro();
-        this.banco = new Banco();
-        this.baralhoCartas = new BaralhoCartas();
+        this.banco = Banco.getInstance();
         this.prisao = new Prisao();
-        this.deckSorte = baralhoCartas.getCartasSorte();
-        this.deckReves = baralhoCartas.getCartasReves();
+        this.baralhoCartas = new CartaController();
+        this.dado = new Dado();
         this.jogadorDaVez = 0;
-        this.dado = new Dado(); // inicializa o objeto Dado
+        this.observers = new ArrayList<>();
 
         String[] cores = {"Vermelho", "Azul", "Laranja", "Amarelo", "Roxo", "Preto"};
 
         for (int i = 0; i < numJogadores; i++) {
-            jogadores.add(new Jogador("Jogador " + (i + 1), cores[i]));
+            Jogador jogador = new Jogador("Jogador " + (i + 1), cores[i]);
+            jogador.addObserver(this);
+            jogadores.add(jogador);
         }
+
+        dado.addObserver(this);
     }
 
-    /**
-     * Rola os dados usando o objeto Dado e retorna os valores
-     */
     public int[] lancarDados() {
         dado.rolar();
-        return new int[]{dado.getValorA(), dado.getValorB()};
+        int[] valores = {dado.getValorA(), dado.getValorB()};
+        notifyObservers("dadosLancados");
+        return valores;
     }
 
-    /**
-     * Move o peão do jogador da vez de acordo com os valores passados
-     */
     public int deslocarPiao(int[] valores) {
         Jogador atual = jogadores.get(jogadorDaVez);
         int soma = Arrays.stream(valores).sum();
         int moveu = tabuleiro.moverPiao(atual, soma);
 
         tabuleiro.verificarEfeito(atual, this);
+        notifyObservers("jogadorMoveu");
+
         return moveu;
     }
 
-    /**
-     * Compra a propriedade em que o jogador da vez está
-     */
-    public boolean comprarPropriedade() {
-        Jogador atual = jogadores.get(jogadorDaVez);
-        return tabuleiro.comprarPropriedade(atual, banco);
+    public void atualizarPosicaoJogador(Jogador jogador) {
+        tabuleiro.verificarEfeito(jogador, this);
+        notifyObservers("posicaoAtualizada");
     }
 
-    /**
-     * Constrói uma casa na propriedade do jogador da vez
-     */
+    public boolean comprarPropriedade() {
+        Jogador atual = jogadores.get(jogadorDaVez);
+        boolean comprou = tabuleiro.comprarPropriedade(atual, banco);
+        if (comprou) {
+            notifyObservers("propriedadeComprada");
+        }
+        return comprou;
+    }
+
     public boolean construirCasa() {
         Jogador atual = jogadores.get(jogadorDaVez);
         Propriedade prop = tabuleiro.getPropriedadeNaPosicao(atual.getPiao().getPosicao());
-        if (prop != null && prop.getDono() == atual) {
-            return prop.construirCasa();
+        if (prop != null && prop.getDono() == atual && prop.construirCasa()) {
+            notifyObservers("casaConstruida");
+            return true;
         }
         return false;
     }
 
-    /**
-     * Passa a vez para o próximo jogador
-     */
     public void proximoJogador() {
-        jogadorDaVez = (jogadorDaVez + 1) % jogadores.size();
+        do {
+            jogadorDaVez = (jogadorDaVez + 1) % jogadores.size();
+        } while (jogadores.get(jogadorDaVez).isFalido());
+
+        notifyObservers("proximoJogador");
     }
 
-    /**
-     * Verifica falência do jogador e libera propriedades se necessário
-     */
     public void verificarFalencia(Jogador jogador) {
-        if (jogador.getSaldo() < 0) {
-            jogadores.remove(jogador);
+        if (jogador.isFalido()) {
+            notifyObservers("falencia");
+
             for (Propriedade p : jogador.getPropriedades()) {
                 p.setDono(null);
+            }
+
+            jogadores.remove(jogador);
+
+            if (jogadores.size() == 1) {
+                notifyObservers("jogoEncerrado");
             }
         }
     }
 
-    // Getters
-    public BaralhoCartas getBaralhoCartas() { return baralhoCartas; }
+    public CartaController getBaralhoCartas() { return baralhoCartas; }
     public Prisao getPrisao() { return prisao; }
     public Banco getBanco() { return banco; }
-    public List<Carta> getDeckSorte() { return deckSorte; }
-    public List<Carta> getDeckReves() { return deckReves; }
-    public Jogador getJogadorDaVez() { return jogadores.get(jogadorDaVez); }
     public Dado getDado() { return dado; }
     public Tabuleiro getTabuleiro() { return tabuleiro; }
     public List<Jogador> getJogadores() { return jogadores; }
+    public Jogador getJogadorDaVez() { return jogadores.get(jogadorDaVez); }
+
+    @Override
+    public void update(Observable observado, String evento) {
+        switch (evento) {
+            case "dadoRolado" -> notifyObservers("dadosLancados");
+            case "saldoAlterado" -> notifyObservers("saldoAtualizado");
+            case "posicaoAlterada" -> notifyObservers("posicaoAtualizada");
+            case "falencia" -> notifyObservers("falencia");
+        }
+    }
+
+    @Override
+    public void addObserver(Observer o) {
+        observers.add(o);
+    }
+
+    @Override
+    public void removeObserver(Observer o) {
+        observers.remove(o);
+    }
+
+    @Override
+    public void notifyObservers(String evento) {
+        for (Observer o : observers) {
+            o.update(this, evento);
+        }
+    }
 }

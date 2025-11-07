@@ -12,27 +12,31 @@ public class DadosView extends JPanel {
     private JComboBox<Integer> comboDado1, comboDado2;
     private JButton btnLancar;
 
+    private static final int TAMANHO_DADO = 80;
     public DadosView() {
         setLayout(new BorderLayout());
+        criarPainelDados();
+        criarPainelControles();
+    }
 
-        // Painel central para exibir os dados
+    // ---------------- Painel com imagens dos dados ----------------
+    private void criarPainelDados() {
         JPanel painelDados = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 20));
-        int tamanho = 80; // largura desejada para todos os dados
-        lblDado1 = new JLabel(new ImageIcon(redimensionarImagem("imagens-01/dados/die_face_1.png", tamanho)));
-        lblDado2 = new JLabel(new ImageIcon(redimensionarImagem("imagens-01/dados/die_face_1.png", tamanho)));
+        lblDado1 = new JLabel(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
+        lblDado2 = new JLabel(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
 
         painelDados.add(lblDado1);
         painelDados.add(lblDado2);
         add(painelDados, BorderLayout.CENTER);
+    }
 
-        // Painel inferior com controles
+    // ---------------- Painel inferior com controles ----------------
+    private void criarPainelControles() {
         JPanel painelControles = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        comboDado1 = new JComboBox<>(new Integer[]{1,2,3,4,5,6});
-        comboDado2 = new JComboBox<>(new Integer[]{1,2,3,4,5,6});
-        
-        comboDado1.setSelectedIndex(-1);
-        comboDado2.setSelectedIndex(-1);
-        
+
+        comboDado1 = criarComboDado();
+        comboDado2 = criarComboDado();
+
         btnLancar = new JButton("Lançar Dados");
 
         painelControles.add(new JLabel("Dado 1:"));
@@ -44,20 +48,24 @@ public class DadosView extends JPanel {
         add(painelControles, BorderLayout.SOUTH);
     }
 
-    /**
-     * Atualiza a visualização dos dados.
-     */
+    private JComboBox<Integer> criarComboDado() {
+        JComboBox<Integer> combo = new JComboBox<>(new Integer[]{1, 2, 3, 4, 5, 6});
+        combo.setSelectedIndex(-1); // nenhum selecionado inicialmente
+        return combo;
+    }
+
+    // ---------------- Atualiza os ícones dos dados ----------------
     public void atualizarView(int v1, int v2) {
-        int tamanho = 80; // largura desejada
-        lblDado1.setIcon(new ImageIcon(redimensionarImagem("imagens-01/dados/die_face_" + v1 + ".png", tamanho)));
-        lblDado2.setIcon(new ImageIcon(redimensionarImagem("imagens-01/dados/die_face_" + v2 + ".png", tamanho)));
+        lblDado1.setIcon(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_" + v1 + ".png", TAMANHO_DADO)));
+        lblDado2.setIcon(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_" + v2 + ".png", TAMANHO_DADO)));
         repaint();
     }
 
-    private Image redimensionarImagem(String caminho, int largura) {
+    // ---------------- Redimensiona e carrega imagem ----------------
+    private Image carregarImagem(String caminho, int largura) {
         try {
             BufferedImage img = ImageIO.read(new File(caminho));
-            int altura = (int)(img.getHeight() * (largura / (double) img.getWidth()));
+            int altura = (int) (img.getHeight() * (largura / (double) img.getWidth()));
             return img.getScaledInstance(largura, altura, Image.SCALE_SMOOTH);
         } catch (Exception e) {
             System.err.println("Erro ao carregar imagem: " + e.getMessage());
@@ -65,13 +73,12 @@ public class DadosView extends JPanel {
         }
     }
 
-
-    // Getters para o Controller
+    // ---------------- Getters para o Controller ----------------
     public JButton getBtnLancar() { return btnLancar; }
     public JComboBox<Integer> getComboDado1() { return comboDado1; }
     public JComboBox<Integer> getComboDado2() { return comboDado2; }
 
-    // Teste rápido standalone da view
+    // ---------------- Teste rápido standalone ----------------
     public static void main(String[] args) {
         JFrame frame = new JFrame("Lançamento de Dados");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

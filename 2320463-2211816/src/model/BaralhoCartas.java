@@ -2,25 +2,37 @@ package model;
 
 import java.util.*;
 
-public class BaralhoCartas {
+public class BaralhoCartas implements Observable {
+
+    private static BaralhoCartas instancia; // Singleton
+
     private List<Carta> cartasSorte;
     private List<Carta> cartasReves;
     private int proximaCartaSorte;
     private int proximaCartaReves;
     private Random random;
+    private final List<Observer> observers;
 
-    public BaralhoCartas(){
+    private BaralhoCartas() {
         this.cartasSorte = new ArrayList<>();
         this.cartasReves = new ArrayList<>();
         this.proximaCartaSorte = 0;
         this.proximaCartaReves = 0;
         this.random = new Random();
+        this.observers = new ArrayList<>();
         inicializarCartas();
         embaralhar();
-    }   
+    }
+
+    public static synchronized BaralhoCartas getInstance() {
+        if (instancia == null) {
+            instancia = new BaralhoCartas();
+        }
+        return instancia;
+    }
 
     private void inicializarCartas() {
-        // Inicializando Cartas de Sorte
+        // Cartas de Sorte
         cartasSorte.add(new Carta("Receba $200 de honorários", TipoCarta.SORTE, AcaoCarta.RECEBER_DINHEIRO, 200));
         cartasSorte.add(new Carta("Vá para a partida e receba $200", TipoCarta.SORTE, AcaoCarta.IR_PARA_PARTIDA, 0));
         cartasSorte.add(new Carta("Avance até Copacabana", TipoCarta.SORTE, AcaoCarta.MOVER_PARA_POSICAO, 39));
@@ -37,7 +49,7 @@ public class BaralhoCartas {
         cartasSorte.add(new Carta("Pague $200", TipoCarta.SORTE, AcaoCarta.PAGAR_DINHEIRO, 200));
         cartasSorte.add(new Carta("Receba $150", TipoCarta.SORTE, AcaoCarta.RECEBER_DINHEIRO, 150));
 
-        // Inicializando Cartas de Revés
+        // Cartas de Revés
         cartasReves.add(new Carta("Pague $150 de imposto", TipoCarta.REVES, AcaoCarta.PAGAR_DINHEIRO, 150));
         cartasReves.add(new Carta("Vá para a prisão", TipoCarta.REVES, AcaoCarta.IR_PARA_PRISAO, 0));
         cartasReves.add(new Carta("Saída livre da prisão", TipoCarta.REVES, AcaoCarta.SAIR_LIVRE_PRISAO, 0));
@@ -53,30 +65,33 @@ public class BaralhoCartas {
         cartasReves.add(new Carta("Pague $75", TipoCarta.REVES, AcaoCarta.PAGAR_DINHEIRO, 75));
         cartasReves.add(new Carta("Receba $250", TipoCarta.REVES, AcaoCarta.RECEBER_DINHEIRO, 250));
         cartasReves.add(new Carta("Pague $40 por cada casa e $115 por cada hotel", TipoCarta.REVES, AcaoCarta.PAGAR_POR_PROPRIEDADE, 40));
-    } 
+    }
 
     public void embaralhar() {
         Collections.shuffle(cartasSorte, random);
         Collections.shuffle(cartasReves, random);
         proximaCartaSorte = 0;
         proximaCartaReves = 0;
+        notifyObservers("embaralhado");
     }
-    
+
     public Carta pegarCartaSorte() {
         if (proximaCartaSorte >= cartasSorte.size()) {
-            embaralhar();
+            proximaCartaSorte = 0;
         }
         Carta carta = cartasSorte.get(proximaCartaSorte);
         proximaCartaSorte++;
+        notifyObservers("cartaSorteSacada");
         return carta;
     }
-    
+
     public Carta pegarCartaReves() {
         if (proximaCartaReves >= cartasReves.size()) {
-            embaralhar();
+            proximaCartaReves = 0;
         }
         Carta carta = cartasReves.get(proximaCartaReves);
         proximaCartaReves++;
+        notifyObservers("cartaRevesSacada");
         return carta;
     }
 
@@ -86,14 +101,31 @@ public class BaralhoCartas {
         } else {
             cartasReves.add(carta);
         }
+        notifyObservers("cartaDevolvida");
     }
 
     public List<Carta> getCartasSorte() {
-        return cartasSorte;
+        return Collections.unmodifiableList(cartasSorte);
     }
 
     public List<Carta> getCartasReves() {
-        return cartasReves;
+        return Collections.unmodifiableList(cartasReves);
     }
 
+    @Override
+    public void addObserver(Observer o) {
+        observers.add(o);
+    }
+
+    @Override
+    public void removeObserver(Observer o) {
+        observers.remove(o);
+    }
+
+    @Override
+    public void notifyObservers(String evento) {
+        for (Observer o : observers) {
+            o.update(this, evento);
+        }
+    }
 }

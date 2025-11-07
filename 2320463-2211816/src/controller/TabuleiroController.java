@@ -1,9 +1,10 @@
 package controller;
 
 import model.Piao;
+import model.Jogador;
+import model.Tabuleiro;
 import view.TabuleiroView;
 import view.TabuleiroView.JogadorView;
-import controller.PiaoController;
 
 import java.util.List;
 import javax.swing.Timer;
@@ -11,20 +12,24 @@ import javax.swing.Timer;
 public class TabuleiroController {
 
     private final TabuleiroView view;
+    private final Tabuleiro tabuleiroModel;
     private final List<Piao> pioes;
     private final List<JogadorView> jogadoresView;
     private final PiaoController piaoController;
+    private final List<Jogador> jogadores;
     private int jogadorVez = 0;
 
-    public TabuleiroController(TabuleiroView view, List<Piao> pioes, List<JogadorView> jogadoresView) {
+    public TabuleiroController(TabuleiroView view, Tabuleiro tabuleiro, List<Jogador> jogadores, List<Piao> pioes, List<JogadorView> jogadoresView) {
         this.view = view;
+        this.tabuleiroModel = tabuleiro;
+        this.jogadores = jogadores;
         this.pioes = pioes;
         this.jogadoresView = jogadoresView;
 
-        // Inicializa o controller de piões (Observable)
-        this.piaoController = new PiaoController(pioes, jogadoresView, null);
+        // Inicializa PiaoController
+        this.piaoController = new PiaoController(pioes, jogadoresView, tabuleiroModel);
 
-        // Registra a view como observadora
+        // Registra view como observadora
         this.piaoController.addObserver(view);
 
         // Inicializa a View com os jogadores
@@ -35,27 +40,29 @@ public class TabuleiroController {
     }
 
     private void configurarListenerBotaoDados() {
-        // Remove listeners antigos para evitar duplicação
+        // Remove listeners antigos
         for (var al : view.getBtnRolarDados().getActionListeners()) {
             view.getBtnRolarDados().removeActionListener(al);
         }
 
         view.getBtnRolarDados().addActionListener(e -> {
             if (jogadorVez < 0 || jogadorVez >= pioes.size()) return;
-
             if (view.turnoEmAndamento) return;
+
             view.turnoEmAndamento = true;
 
             view.abrirDadosDialog(valores -> {
                 int dado1 = valores[0];
                 int dado2 = valores[1];
 
-                // Atualiza exibição dos dados
-                view.setDiceValues(dado1, dado2);
-
                 // Move pião via PiaoController
                 piaoController.setJogadorVez(jogadorVez);
-                piaoController.moverPiao(dado1, dado2); // <-- removido view
+                piaoController.moverPiao(dado1, dado2);
+
+                // Atualiza posição e executa efeitos da casa
+                Jogador jogadorAtual = jogadores.get(jogadorVez);
+                String mensagem = tabuleiroModel.verificarEfeito(jogadorAtual, null); // Jogo pode ser passado se necessário
+                System.out.println(mensagem);
 
                 // Mantém dados na tela por 3 segundos
                 new Timer(3000, ev -> {
@@ -63,7 +70,7 @@ public class TabuleiroController {
                     view.diceB = 0;
                     view.repaint();
 
-                    // Atualiza jogador da vez
+                    // Passa a vez
                     jogadorVez = (jogadorVez + 1) % pioes.size();
                     view.setJogadorVez(jogadorVez);
                     view.turnoEmAndamento = false;
@@ -75,7 +82,6 @@ public class TabuleiroController {
         });
     }
 
-    // Permite definir manualmente o jogador da vez
     public void setJogadorVez(int idx) {
         if (idx >= 0 && idx < pioes.size()) {
             jogadorVez = idx;

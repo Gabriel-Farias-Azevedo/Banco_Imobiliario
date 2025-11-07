@@ -1,11 +1,11 @@
 package controller;
 
-import view.DadosView;
-import model.Dado;
-
 import java.util.function.Consumer;
+import model.Dado;
+import view.DadosView;
 
 public class DadosController {
+
     private final DadosView view;
     private final Dado dado;
     private Consumer<int[]> callback; // Callback para enviar os valores lançados
@@ -14,14 +14,16 @@ public class DadosController {
         this.view = view;
         this.dado = dado;
 
-        // Listener único do botão
+        // Listener único do botão "Lançar Dados"
         this.view.getBtnLancar().addActionListener(e -> lancarDados());
     }
 
+    /** Define o callback que será chamado após o lançamento */
     public void setCallback(Consumer<int[]> cb) {
         this.callback = cb;
     }
 
+    /** Lança os dados (aleatório ou valores manuais) */
     public void lancarDados() {
         int v1, v2;
 
@@ -46,12 +48,14 @@ public class DadosController {
 
         System.out.println("Dados lançados: " + v1 + " + " + v2 + " = " + (v1 + v2));
 
-        // Dispara callback (movimento do pião)
+        // Dispara callback (movimento do pião ou qualquer ação)
         if (callback != null) {
             callback.accept(new int[]{v1, v2});
         }
     }
 
+    // ---------------- Getters ----------------
     public int getValorA() { return dado.getValorA(); }
     public int getValorB() { return dado.getValorB(); }
+    public int getSoma() { return dado.getSoma(); }
 }

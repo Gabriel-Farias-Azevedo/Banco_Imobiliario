@@ -1,12 +1,13 @@
 package view;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import controller.JogoController;
-
+import controller.BancoImobiliarioFacade;
 
 public class HomeView extends JFrame {
 
@@ -14,14 +15,13 @@ public class HomeView extends JFrame {
     private JPanel painelJogadores;
     private JButton botaoIniciar;
 
-    private java.util.List<JTextField> camposNomes = new ArrayList<>();
-    private java.util.List<JComboBox<String>> combosCores = new ArrayList<>();
+    private List<JTextField> camposNomes = new ArrayList<>();
+    private List<JComboBox<String>> combosCores = new ArrayList<>();
 
     private static final String[] CORES_DISPONIVEIS = {
-    		"Vermelho", "Azul", "Laranja", "Amarelo", "Roxo", "Preto"
+        "Vermelho", "Azul", "Laranja", "Amarelo", "Roxo", "Preto"
     };
-    
-// TESTE COMMIT
+
     public HomeView() {
         setTitle("Banco Imobiliário - Configuração Inicial");
         setSize(500, 500);
@@ -84,10 +84,9 @@ public class HomeView extends JFrame {
     }
 
     private void iniciarJogo() {
-        JogoController controller = JogoController.getInstancia();
-        controller.reiniciar(); // limpa dados anteriores
-
         int num = (int) comboNumJogadores.getSelectedItem();
+        List<String> nomes = new ArrayList<>();
+        List<String> cores = new ArrayList<>();
         Set<String> coresUsadas = new HashSet<>();
 
         for (int i = 0; i < num; i++) {
@@ -102,15 +101,18 @@ public class HomeView extends JFrame {
                 JOptionPane.showMessageDialog(this, "A cor '" + cor + "' já foi escolhida!");
                 return;
             }
+
+            nomes.add(nome);
+            cores.add(cor);
             coresUsadas.add(cor);
-            controller.adicionarJogador(nome, cor);
         }
 
-        controller.iniciarTabuleiro();
+        BancoImobiliarioFacade facade = new BancoImobiliarioFacade();
+        facade.iniciarJogo(nomes, cores);
+
+        // Fecha a tela inicial
         dispose();
     }
-
-
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(HomeView::new);

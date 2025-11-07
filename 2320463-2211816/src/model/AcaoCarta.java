@@ -1,0 +1,12 @@
+package model;
+
+public enum AcaoCarta {
+    RECEBER_DINHEIRO,
+    PAGAR_DINHEIRO,
+    MOVER_PARA_POSICAO,
+    MOVER_ESPACOS,
+    IR_PARA_PRISAO,
+    SAIR_LIVRE_PRISAO,
+    IR_PARA_PARTIDA,
+    PAGAR_POR_PROPRIEDADE
+}

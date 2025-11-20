@@ -12,7 +12,7 @@ public class PropriedadeTest {
     @Before
     public void setUp() {
         jogador = new Jogador("Ana", "Vermelho");
-        propriedade = new Propriedade("Avenida Brasil", 200);
+        propriedade = new Propriedade("Avenida Brasil", 200, TipoPropriedade.ESPECIAL);
     }
 
     @Test(timeout = 2000)

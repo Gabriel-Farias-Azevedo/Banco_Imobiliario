@@ -1,10 +1,9 @@
 package controller;
 
-import model.*;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import model.*;
 
 public class CartaController {
 
@@ -68,11 +67,24 @@ public class CartaController {
     }
 
     public void devolverCarta(Carta carta) {
-        if (carta.getTipo() == TipoCarta.SORTE) cartasSorte.add(carta);
-        else if (carta.getTipo() == TipoCarta.REVES) cartasReves.add(carta);
+        if (carta.getTipo() == TipoCarta.SORTE) {
+            cartasSorte.add(carta);
+        } else if (carta.getTipo() == TipoCarta.REVES) {
+            cartasReves.add(carta);
+        }
+
         Collections.shuffle(cartasSorte);
         Collections.shuffle(cartasReves);
     }
+
+    public void devolverCartaSairPrisao() {
+        cartasSorte.add(new Carta("Sair Livre da Prisão", 
+            TipoCarta.SORTE,
+            AcaoCarta.SAIR_LIVRE_PRISAO,
+            0));
+        Collections.shuffle(cartasSorte);
+    }
+
 
     /** Retorna o caminho da imagem da carta */
     public String getCaminhoImagem(Carta carta) {
@@ -80,12 +92,12 @@ public class CartaController {
             int indice = cartasSorte.indexOf(carta) + 1; // de 1 a 15
             if (indice < 1) indice = 1; // segurança
             if (indice > 15) indice = 15;
-            return "/imagens-01/sorteReves/chance" + indice + ".png";
+            return "/Imagens-01/sorteReves/chance" + indice + ".png";
 
         } 
         else if (carta.getTipo() == TipoCarta.REVES) {
             int indice = cartasReves.indexOf(carta) + 1;
-            return "/imagens-01/sorteReves/chance" + (indice + 15) + ".png";
+            return "/Imagens-01/sorteReves/chance" + (indice + 15) + ".png";
         }
         
         return null;

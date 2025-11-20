@@ -70,11 +70,23 @@ public class Jogo implements Observable, Observer {
 
     public boolean comprarPropriedade() {
         Jogador atual = jogadores.get(jogadorDaVez);
-        boolean comprou = tabuleiro.comprarPropriedade(atual, banco);
-        if (comprou) {
-            notifyObservers("propriedadeComprada");
+
+        Propriedade prop = tabuleiro.getPropriedadeNaPosicao(atual.getPosicao());
+
+        if (prop == null || prop.isEspecial() || prop.temDono()) {
+            return false;
         }
-        return comprou;
+
+        if (atual.getSaldo() >= prop.getPreco()) {
+            atual.ajustarSaldo(-prop.getPreco());
+            banco.creditar(prop.getPreco());
+            prop.setDono(atual);
+            atual.getPropriedades().add(prop);
+            notifyObservers("propriedadeComprada");
+            return true;
+        }
+
+        return false;
     }
 
     public boolean construirCasa() {

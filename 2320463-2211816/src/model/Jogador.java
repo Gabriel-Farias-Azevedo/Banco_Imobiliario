@@ -11,7 +11,12 @@ public class Jogador implements Observable {
     private Piao piao;
     private List<Propriedade> propriedades;
     private int posicao;
-    private boolean preso;
+
+    // ------- CAMPOS RELACIONADOS À PRISÃO -------
+    private boolean preso;                 // está preso?
+    private int turnosPreso;               // quantos turnos já está preso
+    private boolean temCartaSairPrisao;    // possui carta de saída livre?
+
     private int ordem;
     private final List<Observer> observers;
 
@@ -22,11 +27,16 @@ public class Jogador implements Observable {
         this.piao = new Piao(cor);
         this.propriedades = new ArrayList<>();
         this.posicao = 0;
+
         this.preso = false;
+        this.turnosPreso = 0;
+        this.temCartaSairPrisao = false;
+
         this.ordem = 0;
         this.observers = new ArrayList<>();
     }
 
+    // ---------------- GETTERS ----------------
     public String getNome() { return nome; }
     public String getCor() { return cor; }
     public double getSaldo() { return saldo; }
@@ -34,7 +44,11 @@ public class Jogador implements Observable {
     public List<Propriedade> getPropriedades() { return propriedades; }
     public int getPosicao() { return posicao; }
     public boolean isPreso() { return preso; }
+    public int getTurnosPreso() { return turnosPreso; }
+    public boolean temCartaSairPrisao() { return temCartaSairPrisao; }
     public int getOrdem() { return ordem; }
+
+    // ---------------- SETTERS ----------------
 
     public void setOrdem(int ordem) {
         this.ordem = ordem;
@@ -43,7 +57,24 @@ public class Jogador implements Observable {
 
     public void setPreso(boolean preso) {
         this.preso = preso;
+        this.turnosPreso = preso ? 0 : 0; // reset sempre que entra ou sai
+
         notifyObservers(preso ? "jogadorPreso" : "jogadorSolto");
+    }
+
+    public void incrementarTurnoPreso() {
+        this.turnosPreso++;
+        notifyObservers("turnoPresoIncrementado");
+    }
+
+    public void receberCartaSairPrisao() {
+        this.temCartaSairPrisao = true;
+        notifyObservers("recebeuCartaSairPrisao");
+    }
+
+    public void usarCartaSairPrisao() {
+        this.temCartaSairPrisao = false;
+        notifyObservers("usouCartaSairPrisao");
     }
 
     public void setPosicao(int posicao) {
@@ -78,7 +109,8 @@ public class Jogador implements Observable {
     public boolean isFalido() {
         return saldo <= 0;
     }
-    
+
+    // ---------------- OBSERVER ----------------
     @Override
     public void addObserver(Observer o) {
         observers.add(o);

@@ -14,8 +14,17 @@ public class DadosController {
         this.view = view;
         this.dado = dado;
 
-        // Listener único do botão "Lançar Dados"
+        // 🔴 IMPORTANTE: garante apenas UM listener no botão "Lançar Dados"
+        removerListenersAntigos();
         this.view.getBtnLancar().addActionListener(e -> lancarDados());
+    }
+
+    /** Remove todos os ActionListeners antigos do botão lançar */
+    private void removerListenersAntigos() {
+        var btn = view.getBtnLancar();
+        for (var al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
     }
 
     /** Define o callback que será chamado após o lançamento */
@@ -52,6 +61,9 @@ public class DadosController {
         if (callback != null) {
             callback.accept(new int[]{v1, v2});
         }
+
+        view.getComboDado1().setSelectedIndex(-1);
+        view.getComboDado2().setSelectedIndex(-1);
     }
 
     // ---------------- Getters ----------------

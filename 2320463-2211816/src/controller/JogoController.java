@@ -2,35 +2,31 @@ package controller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+
 import model.Jogador;
 import model.Jogo;
 import model.Piao;
 import model.Tabuleiro;
-import view.TabuleiroView;
-import view.TabuleiroView.JogadorView;
+import model.Observable;
+import model.Observer;
 
-public class JogoController {
+public class JogoController implements Observable {
 
     private static JogoController instancia;
 
-    private final List<Jogador> jogadores;
+    private final List<Jogador> jogadores = new ArrayList<>();
     private int jogadorAtualIndex = 0;
 
-    private TabuleiroView tabuleiroView;
     private PiaoController piaoController;
-    private DadosController dadosController;
     private JogadorController jogadorController;
 
     private Jogo jogo;
     private Tabuleiro tabuleiroModel;
-    private List<Piao> pioes;
-    private final Random random = new Random();
+
+    private final List<Observer> observers = new ArrayList<>();
 
     private JogoController() {
-        jogadores = new ArrayList<>();
-        pioes = new ArrayList<>();
-        jogo = new Jogo(4); // quantidade padrão
+        jogo = new Jogo(4);
         tabuleiroModel = jogo.getTabuleiro();
     }
 
@@ -39,112 +35,105 @@ public class JogoController {
         return instancia;
     }
 
-    // === MODEL ===
+    @Override
+    public void addObserver(Observer o) {
+        if (!observers.contains(o)) observers.add(o);
+    }
+
+    @Override
+    public void removeObserver(Observer o) {
+        observers.remove(o);
+    }
+
+    @Override
+    public void notifyObservers(String evento) {
+        for (Observer o : observers) o.update(this, evento);
+    }
+
     public void adicionarJogador(String nome, String cor) {
         Jogador j = new Jogador(nome, cor);
         jogadores.add(j);
         jogo.getJogadores().add(j);
     }
 
-    public List<Jogador> getJogadores() { return jogadores; }
-    public Jogador getJogadorAtual() { return jogadores.get(jogadorAtualIndex); }
-    public int getJogadorAtualIndex() { return jogadorAtualIndex; }
+    public List<Jogador> getJogadores() {
+        return jogadores;
+    }
 
-    public void proximoJogador() {
-        jogadorAtualIndex = (jogadorAtualIndex + 1) % jogadores.size();
+    public Jogador getJogadorAtual() {
+        return jogadores.get(jogadorAtualIndex);
+    }
+
+    public int getJogadorAtualIndex() {
+        return jogadorAtualIndex;
     }
 
     public void reiniciar() {
         jogadores.clear();
-        pioes.clear();
         jogadorAtualIndex = 0;
-        if (tabuleiroView != null) {
-            tabuleiroView.dispose();
-            tabuleiroView = null;
-        }
-        piaoController = null;
-        dadosController = null;
-        jogadorController = null;
         jogo = new Jogo(4);
         tabuleiroModel = jogo.getTabuleiro();
     }
 
-    // INTEGRAÇÃO COM VIEW
-    public void iniciarTabuleiro() {
-    // Cria o Jogo com base no número de jogadores adicionados
-    jogo = new Jogo(jogadores.size());
-    tabuleiroModel = jogo.getTabuleiro();
-
-    List<JogadorView> jogadoresView = new ArrayList<>();
-    pioes = new ArrayList<>();
-
-    for (Jogador j : jogadores) {
-        JogadorView jv = new JogadorView(j.getNome(), j.getCor());
-        jv.pistaIndex = 0;
-        jogadoresView.add(jv);
-
-        // Usa o Piao do próprio jogador
-        Piao p = j.getPiao();
-        pioes.add(p);
-    }
-
-    // Cria controllers
-    jogadorController = new JogadorController(jogadores);
-    piaoController = new PiaoController(pioes, jogadoresView, tabuleiroModel);
-
-    // Cria TabuleiroView
-    tabuleiroView = new TabuleiroView(jogadoresView, pioes, piaoController);
-
-    // Registra view como observador de Piao e Jogador
-    for (Piao p : pioes) p.addObserver(tabuleiroView);
-    for (Jogador j : jogadores) j.addObserver(tabuleiroView);
-
-    // Cria DadosController ligado ao Dado do jogo
-    dadosController = new DadosController(tabuleiroView.getDadosView(), jogo.getDado());
-}
-
-    // === FLUXO DE JOGO ===
     public void jogarDados(int d1, int d2) {
-        Piao piao = pioes.get(jogadorAtualIndex);
-        piaoController.setJogadorVez(jogadorAtualIndex);
-        piaoController.moverPiao(d1, d2);
 
-        // Verifica falência
-        Jogador atual = getJogadorAtual();
-        jogo.verificarFalencia(atual);
-        if (atual.isFalido()) {
-            jogadorController.removerJogador(atual);
-            if (jogadores.size() <= 1) {
-                System.out.println("Jogo encerrado!");
-                return;
-            }
+    Jogador jogador = getJogadorAtual();
+    var prisao = jogo.getPrisao();
+
+    if (jogador.isPreso()) {
+
+        // 1.1 — Sai automaticamente se tiver carta
+        if (jogador.temCartaSairPrisao()) {
+            prisao.tentarSairPorCarta(jogador);
+            notifyObservers("jogadorSolto");
         }
 
-        // Passa a vez
-        proximoJogador();
+        // 1.2 — Tenta sair por dados iguais
+        else if (d1 == d2) {
+            prisao.tentarSairPorDado(jogador, d1, d2);
+            notifyObservers("jogadorSolto");
+        }
+
+        // 1.3 — Se ainda estiver preso, perde o turno
+        if (jogador.isPreso()) {
+            jogador.incrementarTurnoPreso();
+            notifyObservers("permanecePreso");
+            return;     // 🔥 TURN0 TERMINA AQUI
+        }
     }
 
-    public void jogarDadosRandom() {
-        int d1 = random.nextInt(6) + 1;
-        int d2 = random.nextInt(6) + 1;
-        jogarDados(d1, d2);
-        System.out.println(getJogadorAtual().getNome() + " tirou " + d1 + " e " + d2);
+    if (piaoController == null) return;
+
+    piaoController.setJogadorVez(jogadorAtualIndex);
+    piaoController.moverPiao(d1, d2);
+
+    // Verifica falência após mover
+    jogo.verificarFalencia(jogador);
+
+    if (jogador.isFalido()) {
+        jogadorController.removerJogador(jogador);
+
+        if (jogadores.size() <= 1) {
+            System.out.println("Jogo encerrado!");
+        }
+    }
+}
+
+
+    public void passarTurno() {
+        jogadorAtualIndex++;
+        jogadorAtualIndex %= jogadores.size();
+        notifyObservers("VezMudou");
     }
 
-    public void jogarDadosViaView() {
-        if (tabuleiroView == null || dadosController == null) return;
-
-        tabuleiroView.abrirDadosDialog(valores -> {
-            jogarDados(valores[0], valores[1]);
-        });
-    }
-
-    // === GETTERS ===
-    public TabuleiroView getTabuleiroView() { return tabuleiroView; }
-    public PiaoController getPiaoController() { return piaoController; }
-    public DadosController getDadosController() { return dadosController; }
-    public JogadorController getJogadorController() { return jogadorController; }
     public Jogo getJogo() { return jogo; }
-    public Tabuleiro getTabuleiro() {return tabuleiroModel;}
+    public Tabuleiro getTabuleiro() { return tabuleiroModel; }
 
+    public void setPiaoController(PiaoController pc) {
+        this.piaoController = pc;
+    }
+
+    public void setJogadorController(JogadorController jc) {
+        this.jogadorController = jc;
+    }
 }

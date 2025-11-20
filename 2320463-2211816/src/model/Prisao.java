@@ -8,62 +8,49 @@ import java.util.ArrayList;
 
 public class Prisao implements Observable {
 
-    private final Set<Jogador> presos;
-    private final List<Observer> observers;
-
-    public Prisao() {
-        this.presos = new HashSet<>();
-        this.observers = new ArrayList<>();
-    }
+    private final Set<Jogador> presos = new HashSet<>();
+    private final List<Observer> observers = new ArrayList<>();
 
     public void prender(Jogador j) {
-        presos.add(j);
-        j.setPreso(true);
-        notifyObservers("jogadorPreso");
-    }
-
-    public void soltarDado(Jogador j, int dado1, int dado2) {
-        if (dado1 == dado2 && presos.contains(j)) {
-            presos.remove(j);
-            j.setPreso(false);
-            notifyObservers("soltoPorDado");
+        if (!presos.contains(j)) {
+            presos.add(j);
+            j.setPreso(true);
+            j.incrementarTurnoPreso(); // começa a contar
+            notifyObservers("jogadorPreso");
         }
     }
 
-    public void soltarCarta(Jogador j) {
-        if (presos.contains(j)) {
+    public boolean tentarSairPorCarta(Jogador j) {
+        if (presos.contains(j) && j.temCartaSairPrisao()) {
+            j.usarCartaSairPrisao();
             presos.remove(j);
             j.setPreso(false);
             notifyObservers("soltoPorCarta");
+            return true;
         }
+        return false;
     }
 
-    public boolean estaPreso(Jogador j) {
-        return presos.contains(j);
+    public boolean tentarSairPorDado(Jogador j, int d1, int d2) {
+        if (presos.contains(j) && d1 == d2) {
+            presos.remove(j);
+            j.setPreso(false);
+            notifyObservers("soltoPorDado");
+            return true;
+        }
+        return false;
     }
 
-    public int getQuantidadePresos() {
-        return presos.size();
-    }
-
-    public Set<Jogador> getPresos() {
-        return Collections.unmodifiableSet(presos);
-    }
-
-    @Override
-    public void addObserver(Observer o) {
-        observers.add(o);
-    }
+    public boolean estaPreso(Jogador j) { return presos.contains(j); }
 
     @Override
-    public void removeObserver(Observer o) {
-        observers.remove(o);
-    }
+    public void addObserver(Observer o) { observers.add(o); }
+
+    @Override
+    public void removeObserver(Observer o) { observers.remove(o); }
 
     @Override
     public void notifyObservers(String evento) {
-        for (Observer o : observers) {
-            o.update(this, evento);
-        }
+        for (Observer o : observers) o.update(this, evento);
     }
 }

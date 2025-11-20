@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Propriedade implements Observable {
+
     private String nome;
     private double preco;
     private Jogador dono;
     private int casas;
     private int hoteis;
-    private boolean especial;
+    private boolean especial; // sorte, revés, prisão, partida, imposto etc.
     private final List<Observer> observers;
 
     public Propriedade(String nome, double preco) {
@@ -24,6 +25,8 @@ public class Propriedade implements Observable {
         this.hoteis = 0;
         this.observers = new ArrayList<>();
     }
+
+    // ---------------- GETTERS ----------------
 
     public boolean temDono() { return dono != null; }
 
@@ -41,6 +44,13 @@ public class Propriedade implements Observable {
 
     public int getHoteis() { return hoteis; }
 
+    // Companhia = qualquer casa cujo nome contenha "companhia"
+    public boolean isCompanhia() {
+        return nome != null && nome.toLowerCase().contains("companhia");
+    }
+
+    // ---------------- COMPRA ----------------
+
     public boolean comprar(Jogador jogador) {
         if (!temDono() && !especial && jogador.getSaldo() >= preco) {
             Banco.getInstance().receber(jogador, preco);
@@ -51,9 +61,12 @@ public class Propriedade implements Observable {
         return false;
     }
 
-    public boolean construirCasa() {
+    // ---------------- CONSTRUÇÃO ----------------
+    // Companhias NÃO podem construir
+
+   public boolean construirCasa() {
         if (dono == null || especial) return false;
-        if (casas < 4 && hoteis == 0) {
+        if (casas < 4) {
             casas++;
             notifyObservers("casaConstruida");
             return true;
@@ -61,29 +74,64 @@ public class Propriedade implements Observable {
         return false;
     }
 
+
     public boolean construirHotel() {
         if (dono == null || especial) return false;
-        if (casas == 4 && hoteis < 1) {
+        if (casas >= 1 && hoteis == 0) { 
             hoteis = 1;
-            casas = 0;
+            casas = casas - 1; // opcional: algumas versões mantêm 1 casa, outras zeram
             notifyObservers("hotelConstruido");
             return true;
         }
         return false;
     }
 
+
+    // ---------------- ALUGUEL ----------------
+
+    // Terrenos normais (sem dados)
     public double calcularAluguel() {
-        if (hoteis > 0) return 500;
-        if (casas > 0) return casas * 100;
-        return 0;
+
+        if (especial) return 0;
+
+        // COMPANHIAS são tratadas separadamente
+        if (isCompanhia()) return 0; 
+
+        double base = preco * 0.15;
+
+        if (hoteis > 0) return preco * 1.00;
+
+        if (casas > 0) return preco * (0.15 + casas * 0.35);
+
+        return base;
     }
+
+    public double calcularAluguel(int valorDados) {
+        if (!isCompanhia() || dono == null) return calcularAluguel();
+
+        long qtd = dono.getPropriedades().stream()
+                    .filter(Propriedade::isCompanhia)
+                    .count();
+
+        return qtd == 1 ? valorDados * 4 : valorDados * 10;
+    }
+
 
     public void cobrarAluguel(Jogador jogador) {
         if (dono != null && dono != jogador && !especial) {
-            double aluguel = calcularAluguel();
-            Banco.getInstance().receber(jogador, aluguel);
-            Banco.getInstance().pagar(dono, aluguel);
-            notifyObservers("aluguelCobrado");
+
+            double aluguel;
+            if (isCompanhia()) {
+                aluguel = 0;
+            } else {
+                aluguel = calcularAluguel();
+            }
+
+            if (aluguel > 0) {
+                Banco.getInstance().receber(jogador, aluguel);
+                Banco.getInstance().pagar(dono, aluguel);
+                notifyObservers("aluguelCobrado");
+            }
         }
     }
 
@@ -105,4 +153,5 @@ public class Propriedade implements Observable {
             o.update(this, evento);
         }
     }
+
 }

@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import java.io.File;
 
 public class CartaView extends JDialog {
 
@@ -14,12 +13,18 @@ public class CartaView extends JDialog {
 
         // Painel da imagem
         JLabel lblImagem = new JLabel();
-        if(caminhoImagem != null){
+        if (caminhoImagem != null) {
             try {
-                BufferedImage img = ImageIO.read(new File(caminhoImagem));
-                lblImagem.setIcon(new ImageIcon(img.getScaledInstance(200, 120, Image.SCALE_SMOOTH)));
+                // Carrega imagem via RESOURCE (correto)
+                BufferedImage img = ImageIO.read(
+                    getClass().getResourceAsStream(caminhoImagem)
+                );
+
+                lblImagem.setIcon(new ImageIcon(
+                        img.getScaledInstance(200, 120, Image.SCALE_SMOOTH)
+                ));
             } catch (Exception e) {
-                System.err.println("Erro ao carregar imagem da carta: " + e.getMessage());
+                System.err.println("Erro ao carregar imagem da carta: " + caminhoImagem);
             }
         }
         add(lblImagem, BorderLayout.NORTH);

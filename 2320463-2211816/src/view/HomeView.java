@@ -107,12 +107,16 @@ public class HomeView extends JFrame {
             coresUsadas.add(cor);
         }
 
+        // ------------------------------
+        // CORREÇÃO PRINCIPAL AQUI 👇
+        // ------------------------------
         BancoImobiliarioFacade facade = new BancoImobiliarioFacade();
-        facade.iniciarJogo(nomes, cores);
+        facade.iniciarJogo(nomes, cores);          // cria jogadores, pioes, view
+        // ------------------------------
 
-        // Fecha a tela inicial
         dispose();
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(HomeView::new);

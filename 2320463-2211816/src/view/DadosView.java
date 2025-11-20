@@ -1,10 +1,9 @@
 package view;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import javax.imageio.ImageIO;
+import javax.swing.*;
 
 public class DadosView extends JPanel {
 
@@ -13,6 +12,7 @@ public class DadosView extends JPanel {
     private JButton btnLancar;
 
     private static final int TAMANHO_DADO = 80;
+
     public DadosView() {
         setLayout(new BorderLayout());
         criarPainelDados();
@@ -22,8 +22,9 @@ public class DadosView extends JPanel {
     // ---------------- Painel com imagens dos dados ----------------
     private void criarPainelDados() {
         JPanel painelDados = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 20));
-        lblDado1 = new JLabel(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
-        lblDado2 = new JLabel(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
+
+        lblDado1 = new JLabel(new ImageIcon(carregarImagemResource("/Imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
+        lblDado2 = new JLabel(new ImageIcon(carregarImagemResource("/Imagens-01/dados/die_face_1.png", TAMANHO_DADO)));
 
         painelDados.add(lblDado1);
         painelDados.add(lblDado2);
@@ -50,44 +51,34 @@ public class DadosView extends JPanel {
 
     private JComboBox<Integer> criarComboDado() {
         JComboBox<Integer> combo = new JComboBox<>(new Integer[]{1, 2, 3, 4, 5, 6});
-        combo.setSelectedIndex(-1); // nenhum selecionado inicialmente
+        combo.setSelectedIndex(-1);
         return combo;
     }
 
     // ---------------- Atualiza os ícones dos dados ----------------
     public void atualizarView(int v1, int v2) {
-        lblDado1.setIcon(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_" + v1 + ".png", TAMANHO_DADO)));
-        lblDado2.setIcon(new ImageIcon(carregarImagem("/imagens-01/dados/die_face_" + v2 + ".png", TAMANHO_DADO)));
+        lblDado1.setIcon(new ImageIcon(
+                carregarImagemResource("/Imagens-01/dados/die_face_" + v1 + ".png", TAMANHO_DADO)));
+
+        lblDado2.setIcon(new ImageIcon(
+                carregarImagemResource("/Imagens-01/dados/die_face_" + v2 + ".png", TAMANHO_DADO)));
+
         repaint();
     }
 
-    // ---------------- Redimensiona e carrega imagem ----------------
-    private Image carregarImagem(String caminho, int largura) {
+    // ---------------- Carrega imagem como recurso ----------------
+    private Image carregarImagemResource(String resourcePath, int largura) {
         try {
-            BufferedImage img = ImageIO.read(new File(caminho));
+            BufferedImage img = ImageIO.read(getClass().getResourceAsStream(resourcePath));
             int altura = (int) (img.getHeight() * (largura / (double) img.getWidth()));
             return img.getScaledInstance(largura, altura, Image.SCALE_SMOOTH);
         } catch (Exception e) {
-            System.err.println("Erro ao carregar imagem: " + e.getMessage());
+            System.err.println("Erro ao carregar imagem via resource: " + resourcePath);
             return null;
         }
     }
 
-    // ---------------- Getters para o Controller ----------------
     public JButton getBtnLancar() { return btnLancar; }
     public JComboBox<Integer> getComboDado1() { return comboDado1; }
     public JComboBox<Integer> getComboDado2() { return comboDado2; }
-
-    // ---------------- Teste rápido standalone ----------------
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Lançamento de Dados");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 300);
-
-        DadosView dv = new DadosView();
-        frame.add(dv);
-
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-    }
 }
